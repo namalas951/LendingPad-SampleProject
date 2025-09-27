@@ -29,13 +29,19 @@ namespace Data
                                    session.Advanced.MaxNumberOfRequestsPerSession = 5000;
                                    return session;
                                }, lifestyle);
+            container.Register<IAsyncDocumentSession>(() =>
+            {
+                var store = container.GetInstance<IDocumentStore>();
+                return store.OpenAsyncSession();
+            }, lifestyle);
+            container.Register<ICustomCache, CustomMemoryCache>(Lifestyle.Singleton);
         }
 
         private static IDocumentStore InitializeDocumentStore(Assembly assembly, bool createIndexes)
         {
             var documentStore = new DocumentStore
                                 {
-                                    Url = "http://localhost:8080/",
+                                    Url = "http://localhost:8082/",
                                     DefaultDatabase = "SampleProject",
                                     Conventions =
                                     {

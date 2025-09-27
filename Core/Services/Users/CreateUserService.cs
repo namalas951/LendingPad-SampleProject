@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using BusinessEntities;
 using Common;
 using Core.Factories;
-using Data.Repositories;
+using Data.Repositories.Users;
 
 namespace Core.Services.Users
 {
@@ -21,11 +22,11 @@ namespace Core.Services.Users
             _updateUserService = updateUserService;
         }
 
-        public User Create(Guid id, string name, string email, UserTypes type, decimal? annualSalary, IEnumerable<string> tags)
+        public async Task<User> CreateAsync(Guid id, string name, string email, UserTypes type, decimal? annualSalary, IEnumerable<string> tags)
         {
             var user = _userFactory.Create(id);
-            _updateUserService.Update(user, name, email, type, annualSalary, tags);
-            _userRepository.Save(user);
+             await _updateUserService.UpdateAsync(user, name, email, type, annualSalary, tags);
+            await _userRepository.SaveAsync(user);
             return user;
         }
     }

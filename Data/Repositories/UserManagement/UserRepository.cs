@@ -1,25 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using BusinessEntities;
 using Common;
 using Data.Indexes;
+using Data.Repositories.Users;
 using Raven.Client;
 
-namespace Data.Repositories
+namespace Data.Repositories.UserManagement
 {
     [AutoRegister]
-    public class UserRepository : Repository<User>, IUserRepository
+    public class UserRepository : RavenRepository<User>, IUserRepository
     {
-        private readonly IDocumentSession _documentSession;
+        private readonly IAsyncDocumentSession _documentSession;
 
-        public UserRepository(IDocumentSession documentSession) : base(documentSession)
+        public UserRepository(IAsyncDocumentSession documentSession) : base(documentSession)
         {
             _documentSession = documentSession;
         }
 
-        public IEnumerable<User> Get(UserTypes? userType = null, string name = null, string email = null)
+        public async Task<IEnumerable<User>> GetAsync(UserTypes? userType = null, string name = null, string email = null)
         {
-            var query = _documentSession.Advanced.DocumentQuery<User, UsersListIndex>();
+            var query = _documentSession.Advanced.AsyncDocumentQuery<User, UsersListIndex>();
 
             var hasFirstParameter = false;
             if (userType != null)
@@ -49,12 +51,22 @@ namespace Data.Repositories
                 }
                 query = query.WhereEquals("Email", email);
             }
-            return query.ToList();
+            var result = await query.ToListAsync();
+            return result;
         }
 
-        public void DeleteAll()
+        public async Task DeleteAllAsync()
         {
-            base.DeleteAll<UsersListIndex>();
+            await base.DeleteAllAsync<UsersListIndex>();
+        }
+
+        public async Task<IEnumerable<User>> GetUsersAsync(string tag)
+        {
+            var users = await _documentSession.Query<User>()
+           .Where(u => u.Tags.Contains(tag))
+            .ToListAsync();
+
+            return users;
         }
     }
 }

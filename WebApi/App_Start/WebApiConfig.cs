@@ -1,8 +1,11 @@
-﻿using System.Web.Http;
+﻿using System;
+using System.Reflection;
+using System.Web.Http;
 using System.Web.Http.Filters;
 using Common;
 using Core;
 using Data;
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -50,10 +53,10 @@ namespace WebApi
                                        new { id = RouteParameter.Optional }
                                       );
 
-            config.Filters.AddRange(new IFilter[]
-                                    {
-                                        new ContextInitializeAttribute()
-                                    });
+            //config.Filters.AddRange(new IFilter[]
+            //                        {
+            //                            new ContextInitializeAttribute()
+            //                        });
         }
     }
 }

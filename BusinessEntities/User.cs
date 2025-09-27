@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Common.Extensions;
 
 namespace BusinessEntities
@@ -13,12 +14,16 @@ namespace BusinessEntities
         private string _name;
         private UserTypes _type = UserTypes.Employee;
 
+        public string ChangeVector { get; set; }
+
+    
         public string Email
         {
             get => _email;
             private set => _email = value;
         }
 
+        
         public string Name
         {
             get => _name;
@@ -51,19 +56,12 @@ namespace BusinessEntities
 
         public void SetName(string name)
         {
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentNullException("Name was not provided.");
-            }
-            _name = name;
+             _name = name;
         }
 
         public void SetEmail(string email)
         {
-            if (string.IsNullOrEmpty(email))
-            {
-                throw new ArgumentNullException("Name was not provided.");
-            }
+           
             _email = email;
         }
 

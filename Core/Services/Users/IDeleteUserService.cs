@@ -1,10 +1,11 @@
 ﻿using BusinessEntities;
+using System.Threading.Tasks;
 
 namespace Core.Services.Users
 {
     public interface IDeleteUserService
     {
-        void Delete(User user);
-        void DeleteAll();
+        Task DeleteAsync(User user);
+        Task DeleteAllAsync();
     }
 }

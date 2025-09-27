@@ -1,14 +1,19 @@
 ﻿using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web.Http;
 using BusinessEntities;
 using Core.Services.Users;
+using Raven.Abstractions.Exceptions;
+using WebApi.App_Start;
 using WebApi.Models.Users;
 
 namespace WebApi.Controllers
 {
     [RoutePrefix("users")]
+
+    [ContextInitializeAttribute]
     public class UserController : BaseApiController
     {
         private readonly ICreateUserService _createUserService;
@@ -26,51 +31,68 @@ namespace WebApi.Controllers
 
         [Route("{userId:guid}/create")]
         [HttpPost]
-        public HttpResponseMessage CreateUser(Guid userId, [FromBody] UserModel model)
+        public async Task<HttpResponseMessage> CreateUser(Guid userId, [FromBody] UserModel model)
         {
-            var user = _createUserService.Create(userId, model.Name, model.Email, model.Type, model.AnnualSalary, model.Tags);
-            return Found(new UserData(user));
+            if (!ModelState.IsValid)
+            {
+                return BadRequestForModelState();
+            }
+            try
+            {
+                var user = await _createUserService.CreateAsync(userId, model.Name, model.Email, model.Type, model.AnnualSalary, model.Tags);
+                return Found(new UserData(user));
+            }
+            catch (ConcurrencyException)
+            {
+                // User already exists
+                return Conflict("Users already exists with same userID.");
+            }
+            catch (Exception ex)
+            {
+                // Other errors
+                return InternalServerError(ex);
+            }
         }
 
         [Route("{userId:guid}/update")]
         [HttpPost]
-        public HttpResponseMessage UpdateUser(Guid userId, [FromBody] UserModel model)
+        public async Task<HttpResponseMessage> UpdateUser(Guid userId, [FromBody] UserModel model)
         {
-            var user = _getUserService.GetUser(userId);
+            var user = await _getUserService.GetUserAsync(userId);
             if (user == null)
             {
                 return DoesNotExist();
             }
-            _updateUserService.Update(user, model.Name, model.Email, model.Type, model.AnnualSalary, model.Tags);
+            await _updateUserService.UpdateAsync(user, model.Name, model.Email, model.Type, model.AnnualSalary, model.Tags);
             return Found(new UserData(user));
         }
 
         [Route("{userId:guid}/delete")]
         [HttpDelete]
-        public HttpResponseMessage DeleteUser(Guid userId)
+        public async Task<HttpResponseMessage> DeleteUser(Guid userId)
         {
-            var user = _getUserService.GetUser(userId);
+            var user = await _getUserService.GetUserAsync(userId);
             if (user == null)
             {
                 return DoesNotExist();
             }
-            _deleteUserService.Delete(user);
+            await _deleteUserService.DeleteAsync(user);
             return Found();
         }
 
         [Route("{userId:guid}")]
         [HttpGet]
-        public HttpResponseMessage GetUser(Guid userId)
+        public async Task<HttpResponseMessage> GetUser(Guid userId)
         {
-            var user = _getUserService.GetUser(userId);
+            var user = await _getUserService.GetUserAsync(userId);
             return Found(new UserData(user));
         }
 
         [Route("list")]
         [HttpGet]
-        public HttpResponseMessage GetUsers(int skip, int take, UserTypes? type = null, string name = null, string email = null)
+        public async Task<HttpResponseMessage> GetUsers(int skip, int take, UserTypes? type = null, string name = null, string email = null)
         {
-            var users = _getUserService.GetUsers(type, name, email)
+            var users = (await _getUserService.GetUsersAsync(type, name, email))
                                        .Skip(skip).Take(take)
                                        .Select(q => new UserData(q))
                                        .ToList();
@@ -79,17 +101,27 @@ namespace WebApi.Controllers
 
         [Route("clear")]
         [HttpDelete]
-        public HttpResponseMessage DeleteAllUsers()
+        public async Task<HttpResponseMessage> DeleteAllUsers()
         {
-            _deleteUserService.DeleteAll();
+            await _deleteUserService.DeleteAllAsync();
             return Found();
         }
 
         [Route("list/tag")]
         [HttpGet]
-        public HttpResponseMessage GetUsersByTag(string tag)
+        public async Task<HttpResponseMessage> GetUsersByTag([FromUri] string tag)
         {
-            throw new NotImplementedException();
+            
+            if (string.IsNullOrEmpty(tag))
+            {
+                return BadRequest("Tag is required.");
+            }
+
+            var users = await _getUserService.GetUsersAsync(tag);
+            var userDataList = users.Select(u => new UserData(u)).ToList();
+            return Found(userDataList);
+
         }
     }
+
 }

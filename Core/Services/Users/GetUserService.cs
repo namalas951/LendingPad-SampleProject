@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using BusinessEntities;
 using Common;
-using Data.Repositories;
+using Data.Repositories.Users;
 
 namespace Core.Services.Users
 {
@@ -16,14 +17,21 @@ namespace Core.Services.Users
             _userRepository = userRepository;
         }
 
-        public User GetUser(Guid id)
+        public async Task<User> GetUserAsync(Guid id)
         {
-            return _userRepository.Get(id);
+            return await _userRepository.GetAsync(id);
         }
 
-        public IEnumerable<User> GetUsers(UserTypes? userType = null, string name = null, string email = null)
+        public async Task<IEnumerable<User>> GetUsersAsync(UserTypes? userType = null, string name = null, string email = null)
         {
-            return _userRepository.Get(userType, name, email);
+            return await _userRepository.GetAsync(userType, name, email);
         }
+
+
+        public async Task<IEnumerable<User>> GetUsersAsync(string type)
+        {
+            return await _userRepository.GetUsersAsync(type);
+        }
+
     }
 }
