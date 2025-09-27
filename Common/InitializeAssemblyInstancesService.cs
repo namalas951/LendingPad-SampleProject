@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Data;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Caching.Memory;
 using SimpleInjector;
 
 namespace Common
@@ -42,7 +44,36 @@ namespace Common
                     interfaces.RemoveAll(q => type.BaseType.GetInterfaces().Contains(q));
                 }
 
-                if (interfaces.Count == 1)
+                // Reflection-based repository registration
+                if (type.IsGenericType && IsRepository(type))
+                {
+                    // Find the IRepository<> interface by name
+                    var repositoryInterface = interfaces
+                        .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition().Name == "IRepository`1");
+
+                    if (repositoryInterface != null)
+                    {
+                        // Register InMemoryRepository for inMemoryRepository consumers
+                        if (type.Name.StartsWith("InMemoryRepository"))
+                        {
+                            container.RegisterConditional(
+                                repositoryInterface.GetGenericTypeDefinition(),
+                                type.GetGenericTypeDefinition(),
+                                c => c.Consumer.Target.Name == "inMemoryRepository"
+                            );
+                        }
+                        // Register RavenRepository for ravenRepository consumers
+                        else if (type.Name.StartsWith("RavenRepository"))
+                        {
+                            container.RegisterConditional(
+                                repositoryInterface.GetGenericTypeDefinition(),
+                                type.GetGenericTypeDefinition(),
+                                c => c.Consumer.Target.Name == "ravenRepository"
+                            );
+                        }
+                    }
+                }
+                else if (interfaces.Count == 1)
                 {
                     var serviceType = interfaces.First();
 
@@ -68,6 +99,13 @@ namespace Common
                     }
                 }
             }
+
+            bool IsRepository(Type t)
+            {
+                return t.GetInterfaces()
+                    .Any(i => i.IsGenericType && i.GetGenericTypeDefinition().Name == "IRepository`1");
+            }
         }
+
     }
-}
+    }
